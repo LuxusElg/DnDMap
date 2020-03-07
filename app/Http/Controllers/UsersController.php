@@ -45,7 +45,7 @@ class UsersController extends Controller
         User::create([
             'username' => Request::get('username'),
             'email' => Request::get('email'),
-            'password' => Hash::make(Request::get('password')),
+            'password' => Request::get('password'),
             'role' => Request::get('role'),
         ]);
 
@@ -79,7 +79,7 @@ class UsersController extends Controller
         $user->update(Request::only('username', 'email', 'role'));
 
         if (Request::get('password')) {
-            $user->update(['password' => Hash::make(Request::get('password'))]);
+            $user->update(['password' => Request::get('password')]);
         }
 
         return Redirect::back()->with('success', 'User updated.');
