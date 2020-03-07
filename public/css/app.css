@@ -15751,6 +15751,18 @@ video {
   z-index: -999;
 }
 
+.max-w-fit {
+  max-width: -webkit-fit-content;
+  max-width: -moz-fit-content;
+  max-width: fit-content;
+}
+
+.map-pin-edit {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
 @media (min-width: 640px) {
   .sm\:sr-only {
     position: absolute;

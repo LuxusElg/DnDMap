@@ -1,22 +1,99 @@
-import React from 'react'
-import Layout from './Layout'
+import React, { useState } from 'react';
+import classNames from 'classnames';
 
 export default function Map({ map }) {
 
-	const pins = [
+	const [pins, setPins] = useState([
 		{
 			name: 'Triboar',
-			position: {x: 4752, y: 1463}
+			position: {x: 4754, y: 1464}
 		}
-	];
+	]);
+
+	const [placingPin, setPlacingPin] = useState(false);
+	const [pinInput, setPinInput] = useState({
+		show: false,
+		position: { x: 0, y: 0 },
+		pinPos: { x: 0, y: 0 }
+	});
+	const [redraw, setRedraw] = useState(false);
+	let pinInputField = React.createRef();
+	React.useEffect(() => {
+		if (pinInput.show) {
+			pinInputField.current.focus();
+		}
+	}, [pinInput]);
+
+	function placePinBtnClick(event) {
+		setPlacingPin(true);
+		console.log('placing pin...');
+	}
+	function pinPlaced(mapPos, canvasPos) {
+		setPlacingPin(false);
+		setPinInput(values => ({
+			...values,
+			show: true,
+			position: canvasPos,
+			pinPos: mapPos
+		}));
+	}
+
+	function pinInputKeyDown(event) {
+		if (event.keyCode === 13) {
+			const value = event.target.value;
+			setPinInput(values => ({
+				...values,
+				show: false
+			}));
+			
+			setPins(pins => [...pins, {
+				name: value,
+				position: pinInput.pinPos,
+			}]);
+			console.log('pin placed', {name:value,position:pinInput.pinPos});
+			setRedraw(true);
+		}
+	}
 
 	return (
 		<div>
-			<h1>MOVE THE MAP MADDAFAKKA</h1>
+			<div className="mt-1 ml-1 flex items-center justify-between bg-gray-800 rounded w-auto max-w-fit">
+				<div className="flex items-center">
+					<div className="p-2 text-white text-sm font-medium">
+						<button
+							onClick={placePinBtnClick}
+							className={`focus:outline-none items-center btn-red`}
+						>
+							Place pin
+						</button>
+					</div>
+				</div>
+			</div>
 			<MapDisplay
 				image={map}
 				pins={pins}
+				placingPin={placingPin}
+				pinPlaced={pinPlaced}
+				redraw={redraw}
+				setRedraw={setRedraw}
 			/>
+			<div
+				className={classNames('map-pin-edit mt-1 ml-1 flex items-center justify-between bg-gray-800 rounded w-auto max-w-fit', {
+						'hidden': !pinInput.show
+					})}
+				style={{top: pinInput.position.y, left: pinInput.position.x}}
+			>
+				<div className="flex items-center">
+					<div className="p-2 text-black text-sm font-medium">
+						<input 
+							ref={pinInputField}
+							className={classNames('block w-64 h-6 fill-current')}
+							onKeyDown={pinInputKeyDown}
+						/>
+
+					</div>
+				</div>
+			</div>
 		</div>
 	)
 }
@@ -30,12 +107,11 @@ class MapDisplay extends React.Component {
 		this.minScale = 0.05;
 		this.maxScale = 2.0;
 		this.scrollStep = 0.2;
-		this.pins = props.pins;
 
 		this.state = {
 			'image': props.image,
 			'map': {
-				'scale': 1,
+				'scale': 0.7,
 				'offset': {'x': 0, 'y': 0},
 				'dragging': false,
 				'placing': false,
@@ -48,24 +124,30 @@ class MapDisplay extends React.Component {
 		this.canvasMouseMove = this.canvasMouseMove.bind(this);
 		this.canvasScroll = this.canvasScroll.bind(this);
 		this.canvasClick = this.canvasClick.bind(this);
+		this.draw = this.draw.bind(this);
 	}
 
 	updateDimensions() {
 		const canvas = this.refs.canvas;
 		canvas.width = canvas.clientWidth;
 		canvas.height = canvas.clientHeight;
-		this.draw(canvas);
+		this.props.setRedraw(true);
 	}
 
-	draw(canvas) {
-		const img = this.refs.image;
-		const context = canvas.getContext("2d");
-		// clear the canvas
-		context.clearRect(0, 0, canvas.width, canvas.height);
-		// draw the base map
-		this.drawMap(context, img);
-		// draw icons
-		this.drawIcons(context);
+	draw() {
+		if (this.props.redraw) {
+			const canvas = this.refs.canvas;
+			const img = this.refs.image;
+			const context = canvas.getContext("2d");
+			// clear the canvas
+			context.clearRect(0, 0, canvas.width, canvas.height);
+			// draw the base map
+			this.drawMap(context, img);
+			// draw icons
+			this.drawIcons(context);
+	
+			this.props.setRedraw(false);
+		}
 	}
 
 	drawMap(context, img) {
@@ -74,17 +156,23 @@ class MapDisplay extends React.Component {
 		context.drawImage(img, this.state.map.offset.x, this.state.map.offset.y, cwidth, cheight);
 	}
 
-	drawIcons(context) {
+	drawIcons(ctx) {
 		const map = this.state.map;
-		for (const pin of this.pins) {
+		for (const pin of this.props.pins) {
 			let pos = this.fromMapCoords(pin.position, map);
-			context.beginPath();
-			context.arc(pos.x, pos.y, 10 * map.scale, 0, 2 * Math.PI, false);
-			context.fillStyle = 'red';
-			context.fill();
-			context.lineWidth = 5 * map.scale;
-			context.strokeStyle = '#003300';
-			context.stroke();
+			ctx.beginPath();
+			ctx.arc(pos.x, pos.y, 10 * map.scale, 0, 2 * Math.PI, false);
+			ctx.fillStyle = '#E53E3E';
+			ctx.lineWidth = 5 * map.scale;
+			ctx.strokeStyle = '#1A202C';
+			ctx.stroke();
+			ctx.fill();
+
+			ctx.lineWidth = 3;
+			ctx.font = '30px Times New Roman';
+			const textPos = {x: pos.x + 15 * map.scale, y: pos.y + 5 * map.scale}
+			ctx.strokeText(pin.name, textPos.x, textPos.y);
+			ctx.fillText(pin.name, textPos.x, textPos.y);
 		}
 	}
 
@@ -95,10 +183,13 @@ class MapDisplay extends React.Component {
 	 * button 2 = rmb
 	 */
 	canvasClick(event) {
-		if (event.button === 0) {
-			const canvas = this.refs.canvas;
-			const map = this.state.map;
-			let mapPos = this.getMapPos(canvas, map);
+		if (this.props.placingPin) {
+			if (event.button === 0) {
+				const canvas = this.refs.canvas;
+				const map = this.state.map;
+				let mapPos = this.getMapPos(canvas, map);
+				this.props.pinPlaced(mapPos, this.getMousePos(canvas, event));
+			}
 		}
 	}
 
@@ -132,7 +223,7 @@ class MapDisplay extends React.Component {
 			map.offset.y = mousePos.y - (yoff * map.scale);
 	
 			this.setState({map});
-			this.draw(canvas);
+			this.props.setRedraw(true);
 		}
 	}
 
@@ -159,6 +250,18 @@ class MapDisplay extends React.Component {
 			y: Math.round(pos.y * map.scale) + map.offset.y
 		};
 	}
+	centerMapOn(pos) {
+		let map = this.state.map;
+		const canvas = this.refs.canvas;
+		const realPos = this.fromMapCoords(pos, map);
+		const centerPos = {
+			x: Math.round(canvas.width / 2),
+			y: Math.round(canvas.height / 2)
+		}
+		map.offset.x = centerPos.x - realPos.x;
+		map.offset.y = centerPos.y - realPos.y;
+		this.setState({map});
+	}
 
 	canvasMouseMove(event) {
 		if (this.state.map.dragging) {
@@ -167,7 +270,7 @@ class MapDisplay extends React.Component {
 			map.offset.x += event.movementX;
 			map.offset.y += event.movementY;
 			this.setState({map});
-			this.draw(canvas);
+			this.props.setRedraw(true);
 		}
 	}
 
@@ -178,12 +281,13 @@ class MapDisplay extends React.Component {
 		const context = canvas.getContext("2d");
 
 		img.onload = () => {
-			let map = this.state.map;
-			map.scale = canvas.clientHeight / img.height;
-			this.setState({map});
 			canvas.width = canvas.clientWidth;
 			canvas.height = canvas.clientHeight;
-			this.draw(canvas);
+
+			this.centerMapOn({x: 4752, y: 1463});
+
+			setInterval(this.draw, 1000/60);
+			this.props.setRedraw(true);
 		}
 		window.addEventListener('resize', this.updateDimensions);
 	}

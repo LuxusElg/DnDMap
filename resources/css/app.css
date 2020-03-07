@@ -22,3 +22,13 @@
 	top: 0;
 	z-index: -999;
 }
+
+.max-w-fit {
+	max-width: fit-content;
+}
+
+.map-pin-edit {
+	position: absolute;
+	left: 0;
+	top: 0;
+}
