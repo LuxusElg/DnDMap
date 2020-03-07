@@ -10,6 +10,7 @@ export default function Layout({ title, children }) {
     <main>
       <header>
         <InertiaLink href="/">Home</InertiaLink>
+		<InertiaLink href={route('logout')}>Logout</InertiaLink>
       </header>
 
       <article>{children}</article>

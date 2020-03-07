@@ -10,14 +10,39 @@ use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     *
-     * @return void
-     */
     public function register()
     {
-        //
+        $this->registerInertia();
+    }
+
+    public function registerInertia()
+    {
+        Inertia::version(function () {
+            return md5_file(public_path('mix-manifest.json'));
+        });
+
+        Inertia::share([
+            'auth' => function () {
+                return [
+                    'user' => Auth::user() ? [
+                        'id' => Auth::user()->id,
+                        'username' => Auth::user()->username,
+                        'email' => Auth::user()->email,
+                    ] : null,
+                ];
+            },
+            'flash' => function () {
+                return [
+                    'success' => Session::get('success'),
+                    'error' => Session::get('error'),
+                ];
+            },
+            'errors' => function () {
+                return Session::get('errors')
+                    ? Session::get('errors')->getBag('default')->getMessages()
+                    : (object) [];
+            },
+        ]);
     }
 
     /**
@@ -27,18 +52,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        Inertia::version(function () {
-            return md5_file(public_path('mix-manifest.json'));
-		});
-		// wtf tho
-		Auth::login(User::first());
 
-		$user = Auth::user();
-		Inertia::share([
-			'user' =>  [
-				'username' => $user->username ?? null,
-				'email' => $user->email ?? null,
-			]
-		]);
     }
 }

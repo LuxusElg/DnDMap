@@ -7,7 +7,7 @@ use Inertia\Inertia;
 
 class MapController extends Controller
 {
-   
+   	
     public function show()
     {
 		$map = 'maps/swordcoast.jpg';

@@ -11,6 +11,8 @@ use Illuminate\Auth\Events\Registered;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Foundation\Auth\RegistersUsers;
+use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Session;
 
 class RegisterController extends Controller
 {
@@ -55,7 +57,7 @@ class RegisterController extends Controller
         return Validator::make($data, [
             'username' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string'],
+            'password' => ['required', 'string', 'confirmed', 'min:16'],
         ]);
     }
 
@@ -81,6 +83,12 @@ class RegisterController extends Controller
 	 */
 	public function showRegistrationForm()
 	{
+		Inertia::share([
+			'flash' => [
+				'success' => Session::get('success'),
+				'error' => Session::get('error'), 
+			]
+		]);
 		return Inertia::render('Register');
 	}
 
@@ -98,8 +106,6 @@ class RegisterController extends Controller
 
         $this->guard()->login($user);
 
-		return Inertia::render('Index', [
-			'user' => $user,
-		]);
+		return Redirect::route('home');
     }
 }

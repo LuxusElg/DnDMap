@@ -3,15 +3,21 @@ import Layout from './Layout'
 
 export default function Map({ map }) {
 
-	
+	const pins = [
+		{
+			name: 'Triboar',
+			position: {x: 4752, y: 1463}
+		}
+	];
 
 	return (
-		<Layout title="Welcome">
-			<h1>Welcome</h1>
+		<div>
+			<h1>MOVE THE MAP MADDAFAKKA</h1>
 			<MapDisplay
 				image={map}
+				pins={pins}
 			/>
-		</Layout>
+		</div>
 	)
 }
 
@@ -24,6 +30,7 @@ class MapDisplay extends React.Component {
 		this.minScale = 0.05;
 		this.maxScale = 2.0;
 		this.scrollStep = 0.2;
+		this.pins = props.pins;
 
 		this.state = {
 			'image': props.image,
@@ -68,7 +75,17 @@ class MapDisplay extends React.Component {
 	}
 
 	drawIcons(context) {
-
+		const map = this.state.map;
+		for (const pin of this.pins) {
+			let pos = this.fromMapCoords(pin.position, map);
+			context.beginPath();
+			context.arc(pos.x, pos.y, 10 * map.scale, 0, 2 * Math.PI, false);
+			context.fillStyle = 'red';
+			context.fill();
+			context.lineWidth = 5 * map.scale;
+			context.strokeStyle = '#003300';
+			context.stroke();
+		}
 	}
 
 	/**
@@ -78,11 +95,10 @@ class MapDisplay extends React.Component {
 	 * button 2 = rmb
 	 */
 	canvasClick(event) {
-		console.log('click');
 		if (event.button === 0) {
 			const canvas = this.refs.canvas;
 			const map = this.state.map;
-			console.log(this.getMapPos(canvas, map));
+			let mapPos = this.getMapPos(canvas, map);
 		}
 	}
 
@@ -129,9 +145,18 @@ class MapDisplay extends React.Component {
 	}
 	getMapPos(canvas, map) {
 		const mousePos = this.getMousePos(canvas, event);
+		return this.toMapCoords(mousePos, map);
+	}
+	toMapCoords(pos, map) {
 		return {
-			x: Math.floor((mousePos.x - map.offset.x) / map.scale), 
-			y: Math.floor((mousePos.y - map.offset.y) / map.scale)
+			x: Math.floor((pos.x - map.offset.x) / map.scale), 
+			y: Math.floor((pos.y - map.offset.y) / map.scale)
+		};
+	}
+	fromMapCoords(pos, map) {
+		return {
+			x: Math.round(pos.x * map.scale) + map.offset.x,
+			y: Math.round(pos.y * map.scale) + map.offset.y
 		};
 	}
 
