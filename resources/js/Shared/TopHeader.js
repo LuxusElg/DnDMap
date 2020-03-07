@@ -6,9 +6,10 @@ import MainMenu from '@/Shared/MainMenu';
 export default () => {
   const [menuOpened, setMenuOpened] = useState(false);
   return (
-    <div className="bg-indigo-900 md:flex-shrink-0 md:w-56 px-6 py-4 flex items-center justify-between md:justify-center">
-      <InertiaLink className="mt-1" href="/">
-        <Logo className="text-white fill-current" width="120" height="28" />
+    <div className="bg-red-700 md:flex-shrink-0 md:w-56 px-6 py-4 flex items-center justify-between md:justify-center">
+      <InertiaLink className="mt-1 text-white" href="/">
+        	<Logo className="text-white fill-current inline-block mr-3" width="28" height="28" />
+			CampaignMap
       </InertiaLink>
       <div className="relative md:hidden">
         <svg
@@ -20,7 +21,7 @@ export default () => {
           <path d="M0 3h20v2H0V3zm0 6h20v2H0V9zm0 6h20v2H0v-2z" />
         </svg>
         <div className={`${menuOpened ? '' : 'hidden'} absolute right-0 z-20`}>
-          <MainMenu className="relative z-20 mt-2 px-8 py-4 pb-2 shadow-lg bg-indigo-800 rounded" />
+          <MainMenu className="relative z-20 mt-2 px-8 py-4 pb-2 shadow-lg bg-gray-900 rounded" />
           <div
             onClick={() => {
               setMenuOpened(false);

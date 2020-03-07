@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import classNames from 'classnames';
+import { Inertia } from '@inertiajs/inertia'
+import Icon from '@/Shared/Icon';
 
-export default function Map({ map }) {
+export default function Map({ map, locations }) {
 
-	const [pins, setPins] = useState([
-		{
-			name: 'Triboar',
-			position: {x: 4754, y: 1464}
-		}
-	]);
+	const [pins, setPins] = useState(locations.map(loc => {
+		return { name: loc.name, position: {x: loc.pin_x, y: loc.pin_y}};
+	}));
 
 	const [placingPin, setPlacingPin] = useState(false);
 	const [pinInput, setPinInput] = useState({
@@ -41,6 +40,7 @@ export default function Map({ map }) {
 	function pinInputKeyDown(event) {
 		if (event.keyCode === 13) {
 			const value = event.target.value;
+			event.target.value = '';
 			setPinInput(values => ({
 				...values,
 				show: false
@@ -51,8 +51,22 @@ export default function Map({ map }) {
 				position: pinInput.pinPos,
 			}]);
 			console.log('pin placed', {name:value,position:pinInput.pinPos});
+			
+            axios.post(route('locations.store'), {
+				name: value,
+				pin_x: pinInput.pinPos.x,
+				pin_y: pinInput.pinPos.y,
+			}).then(res => {
+                    console.log(res);
+                }).catch(err => {
+                console.log(err);
+            });
 			setRedraw(true);
 		}
+	}
+
+	function navigateBack(event) {
+		Inertia.visit(route('home'));
 	}
 
 	return (
@@ -60,6 +74,12 @@ export default function Map({ map }) {
 			<div className="mt-1 ml-1 flex items-center justify-between bg-gray-800 rounded w-auto max-w-fit">
 				<div className="flex items-center">
 					<div className="p-2 text-white text-sm font-medium">
+						<button
+							onClick={navigateBack}
+							className={`focus:outline-none items-center btn-red mr-1`}
+						>
+							Home
+						</button>
 						<button
 							onClick={placePinBtnClick}
 							className={`focus:outline-none items-center btn-red`}
@@ -162,15 +182,15 @@ class MapDisplay extends React.Component {
 			let pos = this.fromMapCoords(pin.position, map);
 			ctx.beginPath();
 			ctx.arc(pos.x, pos.y, 10 * map.scale, 0, 2 * Math.PI, false);
-			ctx.fillStyle = '#E53E3E';
-			ctx.lineWidth = 5 * map.scale;
+			ctx.fillStyle = '#F56565';
+			ctx.lineWidth = 8 * map.scale;
 			ctx.strokeStyle = '#1A202C';
 			ctx.stroke();
 			ctx.fill();
 
-			ctx.lineWidth = 3;
+			ctx.lineWidth = 8;
 			ctx.font = '30px Times New Roman';
-			const textPos = {x: pos.x + 15 * map.scale, y: pos.y + 5 * map.scale}
+			const textPos = {x: pos.x + 20 * map.scale, y: pos.y + 5 * map.scale}
 			ctx.strokeText(pin.name, textPos.x, textPos.y);
 			ctx.fillText(pin.name, textPos.x, textPos.y);
 		}

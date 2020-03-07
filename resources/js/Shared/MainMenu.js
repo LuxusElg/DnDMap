@@ -4,10 +4,10 @@ import MainMenuItem from '@/Shared/MainMenuItem';
 export default ({ className }) => {
   return (
     <div className={className}>
-      <MainMenuItem text="Dashboard" link="home" icon="dashboard" />
-      <MainMenuItem text="Organizations" link="home" icon="office" />
-      <MainMenuItem text="Contacts" link="home" icon="users" />
-      <MainMenuItem text="Reports" link="home" icon="printer" />
+		<MainMenuItem text="Map" link="map" icon="dashboard" />
+      <MainMenuItem text="Campaigns" link="campaigns" icon="dashboard" />
+      <MainMenuItem text="Users" link="users" icon="office" />
+      <MainMenuItem text="Map Locations" link="maplocations" icon="users" />
     </div>
   );
 };

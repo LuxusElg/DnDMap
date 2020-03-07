@@ -8,12 +8,12 @@ export default ({ icon, link, text }) => {
 
   const iconClasses = classNames('w-4 h-4 mr-2', {
     'text-white fill-current': isActive,
-    'text-indigo-400 group-hover:text-white fill-current': !isActive
+    'text-gray-400 group-hover:text-white fill-current': !isActive
   });
 
   const textClasses = classNames({
     'text-white': isActive,
-    'text-indigo-200 group-hover:text-white': !isActive
+    'text-gray-200 group-hover:text-white': !isActive
   });
 
   return (
