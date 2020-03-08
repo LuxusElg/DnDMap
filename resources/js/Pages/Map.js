@@ -17,6 +17,11 @@ export default function Map({ map, locations }) {
 		roads: true,
 		towns: true,
 	});
+	const [toolSettings, setToolSettings] = useState({
+		dragEnabled: true,
+		zoomEnabled: true,
+		rulerEnabled: false,
+	});
 	const [placingPin, setPlacingPin] = useState(false);
 	const [pinInput, setPinInput] = useState({
 		show: false,
@@ -98,6 +103,13 @@ export default function Map({ map, locations }) {
 		}));
 		setRedraw(true);
 	}
+	function toggleRuler(event) {
+		setToolSettings(settings => ({
+			...settings,
+			dragEnabled: settings['rulerEnabled'],
+			rulerEnabled: !settings['rulerEnabled'],
+		}));
+	}
 
 	return (
 		<div>
@@ -136,9 +148,15 @@ export default function Map({ map, locations }) {
 					</button>
 					<button
 						onClick={toggleTowns}
-						className={`focus:outline-none items-center btn-red p-1`}
+						className={`focus:outline-none items-center btn-red mb-1 p-1`}
 					>
 						Towns
+					</button>
+					<button
+						onClick={toggleRuler}
+						className={`focus:outline-none items-center btn-red p-1`}
+					>
+						Ruler
 					</button>
 				</div>
 			</div>
@@ -151,6 +169,8 @@ export default function Map({ map, locations }) {
 				redraw={redraw}
 				setRedraw={setRedraw}
 				mapLayers={mapLayers}
+				toolSettings={toolSettings}
+				setToolSettings={setToolSettings}
 			/>
 			<div
 				className={classNames('map-pin-edit mt-1 ml-1 flex items-center justify-between bg-gray-800 rounded w-auto max-w-fit', {
@@ -189,10 +209,17 @@ class MapDisplay extends React.Component {
 				'scale': 0.7,
 				'offset': {'x': 0, 'y': 0},
 				'dragging': false,
-				'placing': false,
 			},
-			'map_interaction_disabled': false,
 		}
+
+		this.ruler = {
+			active: false,
+			start: {x: 0, y: 0},
+			end: {x: 0, y: 0},
+			distance: 0,
+			waypoints: [],
+		}
+
 		this.updateDimensions = this.updateDimensions.bind(this);
 		this.canvasMouseDown = this.canvasMouseDown.bind(this);
 		this.canvasMouseUp = this.canvasMouseUp.bind(this);
@@ -200,6 +227,19 @@ class MapDisplay extends React.Component {
 		this.canvasScroll = this.canvasScroll.bind(this);
 		this.canvasClick = this.canvasClick.bind(this);
 		this.draw = this.draw.bind(this);
+		this.handleContextMenu = this.handleContextMenu.bind(this);
+	}
+
+	handleContextMenu(event) {
+		if (this.ruler.active) {
+			const canvas = this.refs.canvas;
+			const map = this.state.map;
+			this.ruler.waypoints.push(new vec2(this.getMapPos(canvas, map, event)));
+			console.log('ruler wp added',this.ruler.waypoints);
+			
+			event.preventDefault();
+			return false;
+		}
 	}
 
 	updateDimensions() {
@@ -235,6 +275,9 @@ class MapDisplay extends React.Component {
 				this.drawIcons(context);
 			}
 
+			// Draw tools
+			this.drawTools(context);
+
 			// Restore context state
 			context.restore();
 	
@@ -266,6 +309,30 @@ class MapDisplay extends React.Component {
 		}
 	}
 
+	drawTools(ctx) {
+		if (this.props.toolSettings.rulerEnabled && this.ruler.active) {
+			this.drawRuler(ctx);
+		}
+	}
+
+	drawRuler(ctx) {
+		const { start, end, distance, waypoints } = this.ruler;
+		ctx.beginPath();
+		ctx.moveTo(start.x, start.y);
+		for (const wp of waypoints) {
+			ctx.lineTo(wp.x, wp.y);
+		}
+		ctx.lineTo(end.x, end.y);
+		ctx.lineWidth = 6 / this.state.map.scale;
+		ctx.strokeStyle = 'yellow';
+		ctx.stroke();
+		
+		ctx.font = (20 / this.state.map.scale)+'px Times New Roman';
+		const textPos = {x: end.x + 20, y: end.y + 5}
+		ctx.strokeText(distance + ' miles', textPos.x, textPos.y);
+		ctx.fillText(distance + ' miles', textPos.x, textPos.y);
+	}
+
 	/**
 	 * Canvas mouse events
 	 * button 0 = lmb
@@ -277,29 +344,40 @@ class MapDisplay extends React.Component {
 			if (event.button === 0) {
 				const canvas = this.refs.canvas;
 				const map = this.state.map;
-				let mapPos = this.getMapPos(canvas, map);
+				let mapPos = this.getMapPos(canvas, map, event);
 				this.props.pinPlaced(mapPos, this.getMousePos(canvas, event));
 			}
 		}
 	}
 
 	canvasMouseDown(event) {
-		if (!this.state.map_interaction_disabled && event.button === 0) {
-			let map = this.state.map;
+		const ts = this.props.toolSettings;
+		const canvas = this.refs.canvas;
+		let map = this.state.map;
+		if (ts.dragEnabled && event.button === 0) {
 			map.dragging = true;
 			this.setState({map});
+		} else if (ts.rulerEnabled && event.button === 0) {
+			this.ruler.active = true;
+			const currentPos = this.getMapPos(canvas, map, event);
+			this.ruler.start = currentPos;
+			this.ruler.waypoints = [];
+			this.ruler.end = currentPos;
 		}
 
 	}
 	canvasMouseUp(event) {
-		if (!this.state.map_interaction_disabled && event.button === 0) {
+		const ts = this.props.toolSettings;
+		if (ts.dragEnabled && event.button === 0) {
 			let map = this.state.map;
 			map.dragging = false;
 			this.setState({map});
+		} else if (ts.rulerEnabled && event.button === 0) {
+			this.ruler.active = false;
 		}
 	}
 	canvasScroll(event) {
-		if (!this.state.map_interaction_disabled) {
+		if (this.props.toolSettings.zoomEnabled) {
 			const canvas = this.refs.canvas;
 			let map = this.state.map;
 			const mousePos = this.getMousePos(canvas, event);
@@ -324,7 +402,7 @@ class MapDisplay extends React.Component {
 		  y: evt.clientY - rect.top
 		};
 	}
-	getMapPos(canvas, map) {
+	getMapPos(canvas, map, event) {
 		const mousePos = this.getMousePos(canvas, event);
 		return this.toMapCoords(mousePos, map);
 	}
@@ -354,12 +432,29 @@ class MapDisplay extends React.Component {
 	}
 
 	canvasMouseMove(event) {
+		const canvas = this.refs.canvas;
+		let map = this.state.map;
 		if (this.state.map.dragging) {
-			const canvas = this.refs.canvas;
-			let map = this.state.map;
 			map.offset.x += event.movementX;
 			map.offset.y += event.movementY;
 			this.setState({map});
+			this.props.setRedraw(true);
+		} if (this.ruler.active) {
+			this.ruler.end = new vec2(this.getMapPos(canvas, map, event));
+
+			let length = 0;
+			let s = this.ruler.start;
+			for (const wp of this.ruler.waypoints) {
+				let d = wp.sub(s);
+				length += d.length();
+				s = wp;
+			}
+			let d = this.ruler.end.sub(s);
+			length += d.length();
+			// map scale is fucked, formula is 0.2742x+0.9192
+			this.ruler.distance = Math.round(0.2742 * length + 0.9192);
+			//this.ruler.distance = l.length();
+
 			this.props.setRedraw(true);
 		}
 	}
@@ -368,7 +463,6 @@ class MapDisplay extends React.Component {
 		const img = this.refs.image;
 		const canvas = this.refs.canvas;
 
-		const context = canvas.getContext("2d");
 
 		img.onload = () => {
 			canvas.width = canvas.clientWidth;
@@ -398,6 +492,7 @@ class MapDisplay extends React.Component {
 					onMouseMove={this.canvasMouseMove}
 					onWheel={this.canvasScroll}
 					onClick={this.canvasClick}
+					onContextMenu={this.handleContextMenu}
 				/>
 				<img ref="image" src={this.state.image} className="hidden" />
 			</div>
@@ -1708,5 +1803,24 @@ class MapDisplay extends React.Component {
       ctx.lineTo(5708.5, 5929.6);
       ctx.stroke();
       ctx.restore();
+	}
+}
+
+class vec2 {
+	constructor(vec) {
+		this.x = vec.x;
+		this.y = vec.y;
+	}
+
+	length() {
+		return Math.floor(Math.sqrt(Math.pow(Math.abs(this.x), 2) + Math.pow(Math.abs(this.y), 2)));
+	}
+
+	add(vector) {
+		return new vec2({x:this.x + vector.x, y:this.y + vector.y});
+	}
+
+	sub(vector) {
+		return new vec2({x:this.x - vector.x, y:this.y - vector.y});
 	}
 }
