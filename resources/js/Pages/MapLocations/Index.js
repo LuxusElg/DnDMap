@@ -10,6 +10,7 @@ const MapLocations = () => {
   const { maplocations } = usePage();
   
   const { links, data } = maplocations;
+  console.log(maplocations, links, data);
   return (
     <div>
       <Helmet title="MapLocations" />
