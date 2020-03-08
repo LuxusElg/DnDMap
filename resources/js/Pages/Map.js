@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import classNames from 'classnames';
 import { Inertia } from '@inertiajs/inertia'
-import Icon from '@/Shared/Icon';
+import MapLocationModal from '@/Shared/MapLocationModal';
 
-export default function Map({ map, locations }) {
+export default function Map({ map, locations, campaign }) {
 
 	const [pins, setPins] = useState(locations.map(loc => {
 		return { 
 			name: loc.name, 
 			position: {x: loc.pin_x, y: loc.pin_y},
-			size: loc.size,
+			size: loc.size / 5,
+			labelSize: (50 * Math.log(loc.size)/5),
 		};
 	}));
 	const [mapLayers, setMapLayers] = useState({
@@ -35,6 +36,8 @@ export default function Map({ map, locations }) {
 			pinInputField.current.focus();
 		}
 	}, [pinInput]);
+
+	const [activeLocation, setActiveLocation] = useState(false);
 
 	function placePinBtnClick(event) {
 		setPlacingPin(true);
@@ -62,6 +65,7 @@ export default function Map({ map, locations }) {
 			setPins(pins => [...pins, {
 				name: value,
 				position: pinInput.pinPos,
+				size: 50,
 			}]);
 			console.log('pin placed', {name:value,position:pinInput.pinPos});
 			
@@ -69,6 +73,8 @@ export default function Map({ map, locations }) {
 				name: value,
 				pin_x: pinInput.pinPos.x,
 				pin_y: pinInput.pinPos.y,
+				campaign_id: campaign.id,
+				size: 50,
 			}).then(res => {
                     console.log(res);
                 }).catch(err => {
@@ -171,7 +177,9 @@ export default function Map({ map, locations }) {
 				mapLayers={mapLayers}
 				toolSettings={toolSettings}
 				setToolSettings={setToolSettings}
+				setActiveLocation={setActiveLocation}
 			/>
+			{activeLocation !== false && <MapLocationModal location={activeLocation} closeModal={() => { setActiveLocation(false); }}/>}
 			<div
 				className={classNames('map-pin-edit mt-1 ml-1 flex items-center justify-between bg-gray-800 rounded w-auto max-w-fit', {
 						'hidden': !pinInput.show
@@ -211,6 +219,7 @@ class MapDisplay extends React.Component {
 				'dragging': false,
 			},
 		}
+		this.pinHoverState = Array(this.props.pins.length).fill(false);
 
 		this.ruler = {
 			active: false,
@@ -235,7 +244,6 @@ class MapDisplay extends React.Component {
 			const canvas = this.refs.canvas;
 			const map = this.state.map;
 			this.ruler.waypoints.push(new vec2(this.getMapPos(canvas, map, event)));
-			console.log('ruler wp added',this.ruler.waypoints);
 			
 			event.preventDefault();
 			return false;
@@ -250,7 +258,7 @@ class MapDisplay extends React.Component {
 	}
 
 	draw() {
-		if (this.props.redraw) {
+		if (true || this.props.redraw) {
 			const canvas = this.refs.canvas;
 			const img = this.refs.image;
 			const layers = this.props.mapLayers;
@@ -291,18 +299,18 @@ class MapDisplay extends React.Component {
 
 
 	drawIcons(ctx) {
-		for (const pin of this.props.pins) {
+		for (const [i, pin] of this.props.pins.entries()) {
 			let pos = pin.position;
 			ctx.beginPath();
-			ctx.arc(pos.x, pos.y, (pin.size / 5), 0, 2 * Math.PI, false);
-			ctx.fillStyle = '#F56565';
+			ctx.arc(pos.x, pos.y, pin.size, 0, 2 * Math.PI, false);
+			ctx.fillStyle = this.pinHoverState[i] ? '#F6AD55' : '#F56565';
 			ctx.lineWidth = 8;
 			ctx.strokeStyle = '#1A202C';
 			ctx.stroke();
 			ctx.fill();
 
 			ctx.lineWidth = 8;
-			ctx.font = (50 * Math.log(pin.size)/5)+'px Times New Roman';
+			ctx.font = pin.labelSize+'px Times New Roman';
 			const textPos = {x: pos.x + 20, y: pos.y + 5}
 			ctx.strokeText(pin.name, textPos.x, textPos.y);
 			ctx.fillText(pin.name, textPos.x, textPos.y);
@@ -346,6 +354,12 @@ class MapDisplay extends React.Component {
 				const map = this.state.map;
 				let mapPos = this.getMapPos(canvas, map, event);
 				this.props.pinPlaced(mapPos, this.getMousePos(canvas, event));
+			}
+		} else {
+			for (const [i,e] of this.pinHoverState.entries()) {
+				if (e) {
+					this.props.setActiveLocation(this.props.pins[i]);
+				}
 			}
 		}
 	}
@@ -418,6 +432,14 @@ class MapDisplay extends React.Component {
 			y: Math.round(pos.y * map.scale) + map.offset.y
 		};
 	}
+
+	getPinBounds(pin) {
+		return new boundingBox(
+			{x: pin.position.x - pin.size, y: pin.position.y - pin.size},
+			{x: pin.position.x + pin.size, y: pin.position.y + pin.size}
+		);
+	}
+
 	centerMapOn(pos) {
 		let map = this.state.map;
 		const canvas = this.refs.canvas;
@@ -439,7 +461,7 @@ class MapDisplay extends React.Component {
 			map.offset.y += event.movementY;
 			this.setState({map});
 			this.props.setRedraw(true);
-		} if (this.ruler.active) {
+		} else if (this.ruler.active) {
 			this.ruler.end = new vec2(this.getMapPos(canvas, map, event));
 
 			let length = 0;
@@ -456,6 +478,12 @@ class MapDisplay extends React.Component {
 			//this.ruler.distance = l.length();
 
 			this.props.setRedraw(true);
+		} else {
+			for (const [i, pin] of this.props.pins.entries()) {
+				const bounds = this.getPinBounds(pin);
+				const mpos = new vec2(this.getMapPos(canvas, map, event));
+				this.pinHoverState[i] = bounds.contains(mpos);
+			}
 		}
 	}
 
@@ -1822,5 +1850,29 @@ class vec2 {
 
 	sub(vector) {
 		return new vec2({x:this.x - vector.x, y:this.y - vector.y});
+	}
+
+	lt(vector) {
+		return (this.x < vector.x && this.y < vector.y);
+	}
+	lte(vector) {
+		return (this.x <= vector.x && this.y <= vector.y);
+	}
+	gt(vector) {
+		return (this.x > vector.x && this.y > vector.y);
+	}
+	gte(vector) {
+		return (this.x >= vector.x && this.y >= vector.y);
+	}
+}
+
+class boundingBox {
+	constructor(topleft, bottomright) {
+		this.tl = new vec2(topleft);
+		this.br = new vec2(bottomright);
+	}
+
+	contains(point) {
+		return (this.tl.lte(point) && this.br.gte(point));
 	}
 }

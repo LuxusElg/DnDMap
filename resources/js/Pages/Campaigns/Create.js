@@ -12,7 +12,8 @@ export default () => {
   const [sending, setSending] = useState(false);
 
   const [values, setValues] = useState({
-    name: '',
+	name: '',
+	start: 0,
   });
 
   function handleChange(e) {
@@ -54,6 +55,14 @@ export default () => {
                 name="name"
                 errors={errors.name}
                 value={values.name}
+                onChange={handleChange}
+              />
+              <TextInput
+                className="pr-6 pb-8 w-full lg:w-1/2"
+                label="In-universe start date"
+                name="start"
+                errors={errors.start}
+                value={values.start}
                 onChange={handleChange}
               />
             </div>

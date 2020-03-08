@@ -34,7 +34,8 @@ class CampaignsController extends Controller
 		}
         Campaign::create(
             Request::validate([
-                'name' => ['required', 'max:100'],
+				'name' => ['required', 'max:100'],
+				'start' => ['required'],
             ])
         );
 
@@ -46,7 +47,8 @@ class CampaignsController extends Controller
         return Inertia::render('Campaigns/Edit', [
             'campaign' => [
                 'id' => $campaign->id,
-                'name' => $campaign->name,
+				'name' => $campaign->name,
+				'start' => $campaign->start,
 				'players' => $campaign->players()->orderByName()->get()->map->only('id', 'username'),
 				'dm' => $campaign->dm
 			],
@@ -63,12 +65,15 @@ class CampaignsController extends Controller
 
     public function update(Campaign $campaign)
     {
+		//dd($campaign->toHarptos(365));
+
 		if (!Auth::user()->can('manage-application')) {
 			return Redirect::back()->with('error', 'Insufficient privileges.');
 		}
         $campaign->update(
             Request::validate([
                 'name' => ['required', 'max:100'],
+				'start' => ['required'],
             ])
         );
 

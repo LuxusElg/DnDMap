@@ -9,8 +9,15 @@ class Campaign extends Model
 {
 
 	protected $fillable = [
-		'name', 'dm_id'
+		'name', 'dm_id', 'start',
 	];
+
+	public function setStartAttribute($value) {
+		$this->attributes['start'] = $value;
+	}
+	public function getStartAttribute($value) {
+		return $value;
+	}
 
     public function players()
     {
@@ -25,6 +32,10 @@ class Campaign extends Model
 		return $this->hasMany(MapLocation::class);
 	}
 
+	public function timelineEvents() {
+		return $this->hasMany(TimelineEvent::class);
+	}
+
     public function scopeFilter($query, array $filters)
     {
         $query->when($filters['search'] ?? null, function ($query, $search) {
@@ -36,5 +47,9 @@ class Campaign extends Model
                 $query->onlyTrashed();
             }
         });
-    }
+	}
+	
+	public function toHarptos($day) {
+		//
+	}
 }

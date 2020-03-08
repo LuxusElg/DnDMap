@@ -11,17 +11,17 @@ use Inertia\Inertia;
 class MapController extends Controller
 {
    	
-    public function show()
+    public function show(Campaign $campaign)
     {
-		$campaign = Campaign::first();
 		if (Auth::user()->id == ($campaign->dm->id ?? null)) {
-			$map = 'maps/scspoilermap.jpg';
+			$map = '/maps/scspoilermap.jpg';
 		} else {
-			$map = 'maps/scblankmap.jpg';
+			$map = '/maps/scblankmap.jpg';
 		}
         return Inertia::render('Map', [
 			'map' => $map,
 			'locations' => $campaign->locations,
+			'campaign' => $campaign
         ]);
 	}
 }

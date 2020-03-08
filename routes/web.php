@@ -24,7 +24,7 @@ Route::post('logout', 'Auth\LoginController@logout')->name('logout');
 
 Route::group(['middleware' => ['auth']], function() {
 	Route::get('/', 'HomeController@index')->name('home');
-	Route::get('/map', 'MapController@show')->name('map');
+	Route::get('/map/{campaign}', 'MapController@show')->name('map');
 	Route::resource('locations', 'MapLocationController');
 
 	//Route::group(['middleware' => ['can:manage-application,']], function() {
@@ -36,6 +36,14 @@ Route::group(['middleware' => ['auth']], function() {
 		Route::put('maplocations/{maplocation}')->name('maplocations.update')->uses('MapLocationsController@update');
 		Route::delete('maplocations/{maplocation}')->name('maplocations.destroy')->uses('MapLocationsController@destroy');
 		Route::put('maplocations/{maplocation}/restore')->name('maplocations.restore')->uses('MapLocationsController@restore');
+		// Timeline Events
+		Route::get('timelineevents')->name('timelineevents')->uses('TimelineEventsController@index');
+		Route::get('timelineevents/create')->name('timelineevents.create')->uses('TimelineEventsController@create');
+		Route::post('timelineevents')->name('timelineevents.store')->uses('TimelineEventsController@store');
+		Route::get('timelineevents/{timelineevent}/edit')->name('timelineevents.edit')->uses('TimelineEventsController@edit');
+		Route::put('timelineevents/{timelineevent}')->name('timelineevents.update')->uses('TimelineEventsController@update');
+		Route::delete('timelineevents/{timelineevent}')->name('timelineevents.destroy')->uses('TimelineEventsController@destroy');
+		Route::put('timelineevents/{timelineevent}/restore')->name('timelineevents.restore')->uses('TimelineEventsController@restore');
 		// Users
 		Route::get('users')->name('users')->uses('UsersController@index');
 		Route::get('users/create')->name('users.create')->uses('UsersController@create');

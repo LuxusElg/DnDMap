@@ -11,7 +11,8 @@ class MapLocation extends Model
 		'pin_x',
 		'pin_y',
 		'size',
-		'campaign_id'
+		'campaign_id',
+		'type',
 	];	
 	
     public function campaign()
@@ -21,6 +22,14 @@ class MapLocation extends Model
 
 	public function visibleTo() {
 		return $this->belongsToMany(User::class, 'location_user', 'location_id', 'user_id');
+	}
+
+	public function notes() {
+		return $this->hasMany(MapLocationNote::class);
+	}
+
+	public function timelineEvents() {
+		return $this->hasMany(TimelineEvent::class);
 	}
 
     public function scopeFilter($query, array $filters)

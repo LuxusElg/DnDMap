@@ -17,6 +17,7 @@ export default () => {
 
   const [values, setValues] = useState({
 	name: campaign.name || '',
+	start: campaign.start || 0,
   });
 
   console.log(campaign, links, data);
@@ -74,6 +75,14 @@ export default () => {
                 name="name"
                 errors={errors.name}
                 value={values.name}
+                onChange={handleChange}
+              />
+              <TextInput
+                className="pr-6 pb-8 w-full lg:w-1/2"
+                label="In-universe start date"
+                name="start"
+                errors={errors.start}
+                value={values.start}
                 onChange={handleChange}
               />
             </div>
